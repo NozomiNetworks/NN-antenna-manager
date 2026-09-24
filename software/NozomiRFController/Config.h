@@ -38,26 +38,29 @@
 // ---------------------------------------------------------------------------
 // PHYSICAL PINOUT (ESP32-C3-WROOM-02) - ADJUST TO YOUR REAL WIRING
 // ---------------------------------------------------------------------------
-#define PIN_BTN_NEXT      4     // "next" button, to GND, uses INPUT_PULLUP
-#define PIN_BTN_ENTER     5     // "enter" button, to GND, uses INPUT_PULLUP
+#define PIN_BTN_NEXT      7     // "next" button = BUTTON_UP net on PCB (U3 pad 6), to GND, INPUT_PULLUP
+#define PIN_BTN_ENTER     10    // "enter" button = BUTTON_DOWN net on PCB (U3 pad 10), to GND, INPUT_PULLUP
 
-#define PIN_I2C_SDA       8     // OLED + external EEPROM share the I2C bus
-#define PIN_I2C_SCL       9
+#define PIN_I2C_SDA       1     // OLED + external EEPROM share the I2C bus
+#define PIN_I2C_SCL       0
 
 #define PIN_UART_TX       21    // External TTL serial (Serial1)
 #define PIN_UART_RX       20
 
-// RF selector: 3 select bits (S2,S1,S0) + 1 tri-state/enable bit (S3)
+// RF selector: PE42482A SP8T switch (IC1) control lines V1..V4 on this PCB:
+//   V1=GPIO3, V2=GPIO4, V3=GPIO5, V4=GPIO6 (IC1 pads 9-12).
+// NOTE: IC1's LS (standby) pin is hard-wired to GND on this board, so there
+// is no true tri-state; check the PE42482 truth table for the V4:V1 coding.
 // Truth table:
 //   TRI-STATE   -> S3=1, S2:S0 = 0
 //   SELECT #n   -> S3=0, S2:S0 = n   (n = 1..7)
-#define PIN_RF_S0         2
-#define PIN_RF_S1         3
-#define PIN_RF_S2         6
-#define PIN_RF_S3_TRISTATE 7
+#define PIN_RF_S0         3
+#define PIN_RF_S1         4
+#define PIN_RF_S2         5
+#define PIN_RF_S3_TRISTATE 6
 
 // ---------------------------------------------------------------------------
-// OLED DISPLAY (SSD1306 I2C 128x64)
+// OLED DISPLAY (SH1106 I2C 128x64)
 // ---------------------------------------------------------------------------
 #define OLED_I2C_ADDR     0x3C
 #define OLED_WIDTH        128

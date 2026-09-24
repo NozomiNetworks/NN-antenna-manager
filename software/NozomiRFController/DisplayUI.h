@@ -1,6 +1,6 @@
 /*
  * DisplayUI.h
- * Manages the I2C SSD1306 OLED, boot logo, 2-button menu (next/enter),
+ * Manages the I2C SH1106 OLED, boot logo, 2-button menu (next/enter),
  * status bar (wifi/bt/channel/antenna range) and auto power-off.
  *
  * This module does NOT know about business logic: it just invokes

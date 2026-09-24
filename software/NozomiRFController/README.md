@@ -23,7 +23,7 @@ CLI.h / .cpp             shared TTL/USB/BLE command interpreter
 
 ## Required libraries (Arduino IDE Library Manager)
 
-- **Adafruit SSD1306** + **Adafruit GFX Library**
+- **Adafruit SH110X** + **Adafruit GFX Library** (for the SH1106 I2C OLED)
 - **ArduinoJson** (v6.x)
 - **NimBLE-Arduino** by h2zero, **version 2.5.0** (the code has been checked
   line-by-line against the official 2.5.0 API docs/headers) — used for all

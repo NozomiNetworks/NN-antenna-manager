@@ -6,10 +6,10 @@
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SH110X.h>
 #include <SPIFFS.h>
 
-static Adafruit_SSD1306 g_oled(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
+static Adafruit_SH1106G g_oled(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
 
 // ---- callbacks toward the application logic --------------------------------
 static ToggleRFCoreCb  s_onToggleRfCore = nullptr;
@@ -26,7 +26,9 @@ static bool s_needRedraw = true;
 static bool s_bootLogoShown = false;
 
 // ---- button debounce --------------------------------------------------------
-static bool s_lastNextState = HIGH;
+static bool s_lastNextRaw = HIGH;      // last raw level seen on the pin
+static bool s_lastEnterRaw = HIGH;
+static bool s_lastNextState = HIGH;    // debounced state
 static bool s_lastEnterState = HIGH;
 static unsigned long s_lastNextChange = 0;
 static unsigned long s_lastEnterChange = 0;
@@ -68,7 +70,7 @@ static bool loadLogoBitmap() {
 // SPIFFS (e.g. before the filesystem image has ever been uploaded).
 static void drawBootLogoTextFallback() {
   g_oled.clearDisplay();
-  g_oled.setTextColor(SSD1306_WHITE);
+  g_oled.setTextColor(SH110X_WHITE);
   g_oled.setTextSize(2);
   g_oled.setCursor(14, 18);
   g_oled.print("NOZOMI");
@@ -86,7 +88,7 @@ static void drawBootLogoTextFallback() {
 static void drawBootLogo() {
   if (loadLogoBitmap()) {
     g_oled.clearDisplay();
-    g_oled.drawBitmap(0, 0, s_logoBuf, OLED_WIDTH, OLED_HEIGHT, SSD1306_WHITE);
+    g_oled.drawBitmap(0, 0, s_logoBuf, OLED_WIDTH, OLED_HEIGHT, SH110X_WHITE);
     g_oled.display();
     free(s_logoBuf);
     s_logoBuf = nullptr;
@@ -151,7 +153,7 @@ static void drawStatusBar() {
     g_oled.print("range n/a");
   }
 
-  g_oled.drawFastHLine(0, 18, OLED_WIDTH, SSD1306_WHITE);
+  g_oled.drawFastHLine(0, 18, OLED_WIDTH, SH110X_WHITE);
 }
 
 static void drawMenu() {
@@ -183,11 +185,11 @@ static void sleep() {
   s_sleeping = true;
   g_oled.clearDisplay();
   g_oled.display();
-  g_oled.ssd1306_command(SSD1306_DISPLAYOFF);
+  g_oled.oled_command(SH110X_DISPLAYOFF);
 }
 
 static void wakeDisplayHw() {
-  g_oled.ssd1306_command(SSD1306_DISPLAYON);
+  g_oled.oled_command(SH110X_DISPLAYON);
 }
 
 void DisplayUI::begin(ToggleRFCoreCb onToggleRfCore,
@@ -200,8 +202,8 @@ void DisplayUI::begin(ToggleRFCoreCb onToggleRfCore,
   pinMode(PIN_BTN_NEXT, INPUT_PULLUP);
   pinMode(PIN_BTN_ENTER, INPUT_PULLUP);
 
-  g_oled.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDR);
-  g_oled.setTextColor(SSD1306_WHITE);
+  g_oled.begin(OLED_I2C_ADDR);
+  g_oled.setTextColor(SH110X_WHITE);
 
   drawBootLogo();
   s_bootLogoShown = true;
@@ -223,25 +225,29 @@ void DisplayUI::update() {
   }
 
   // --- button reading with debounce -----------------------------------
-  bool nextRaw = digitalRead(PIN_BTN_NEXT);
-  bool enterRaw = digitalRead(PIN_BTN_ENTER);
-
   bool nextPressed = false, enterPressed = false;
 
-  if (nextRaw != s_lastNextState) s_lastNextChange = now;
+  // Track the raw level and the debounced level separately: the debounced
+  // state may only change after the raw level has been stable for
+  // BTN_DEBOUNCE_MS. A press is the debounced falling edge (active-low).
+  bool nextRaw = digitalRead(PIN_BTN_NEXT);
+  if (nextRaw != s_lastNextRaw) {
+    s_lastNextRaw = nextRaw;
+    s_lastNextChange = now;
+  }
   if ((now - s_lastNextChange) > BTN_DEBOUNCE_MS && nextRaw != s_lastNextState) {
     s_lastNextState = nextRaw;
-    if (nextRaw == LOW) nextPressed = true; // falling edge (active-low button)
-  } else {
-    s_lastNextState = nextRaw;
+    if (nextRaw == LOW) nextPressed = true;
   }
 
-  if (enterRaw != s_lastEnterState) s_lastEnterChange = now;
+  bool enterRaw = digitalRead(PIN_BTN_ENTER);
+  if (enterRaw != s_lastEnterRaw) {
+    s_lastEnterRaw = enterRaw;
+    s_lastEnterChange = now;
+  }
   if ((now - s_lastEnterChange) > BTN_DEBOUNCE_MS && enterRaw != s_lastEnterState) {
     s_lastEnterState = enterRaw;
     if (enterRaw == LOW) enterPressed = true;
-  } else {
-    s_lastEnterState = enterRaw;
   }
 
   if (nextPressed || enterPressed) {
